@@ -61,48 +61,65 @@ app.get("/mine", (req, res) => {
 
 app.post("/register-and-broadcast-node", (req, res) => {
   const registerNodePromises = [];
-
   const newNodeUrl = req.body.newNodeUrl;
   
-  // if (block.networkNodes.indexOf(newNodeUrl) === -1) block.networkNodes.push(newNodeUrl);
+  if (block.networkNodes.indexOf(newNodeUrl) === -1) block.networkNodes.push(newNodeUrl);
   
   block.networkNodes.forEach(networkNodeUrl => {
+    const requestOptions = {
+      uri: `${networkNodeUrl}/register-node`,
+      method: 'POST',
+      body: {
+        newNodeUrl,
+      },
+      json: true,
+    };
+
     registerNodePromises.push(
-      request.post(`${networkNodeUrl}/register-node`, { newNodeUrl })
+      request(requestOptions)
     );
   });
 
   Promise.all(registerNodePromises)
-    .then(data =>
-      request.post(`${newNodeUrl}/register-nodes-bulk`, {
-        allNetworkNodes: [...block.networkNodes, block.currentNodeUrl]
-      })
-    )
+    .then(() => {
+      const bulkRequestOptions = {
+        uri: `${newNodeUrl}/register-nodes-bulk`,
+        method: 'POST',
+        body: {
+          allNetworkNodes: [...block.networkNodes, block.currentNodeUrl],
+        },
+        json: true
+      };
+
+      return request(bulkRequestOptions);
+    })
     .then(() => {
       res.status(200).send({ message: "New node added successfuly." });
+    })
+    .catch((error) => {
+      throw new Error(error);
     });
 });
 
 app.post("/register-node", (req, res) => {
   const { newNodeUrl } = req.body;
-  const isValidUrl = networkService.isValidNodeUrl(newNodeUrl, block);
+  const isValid = networkService.isValidNodeUrl(newNodeUrl, block);
 
-  if (isValidUrl) {
+  if (isValid) {
     block.networkNodes.push(newNodeUrl);
     res.status(200).send({ message: "New node registered successfuly." });
   } else {
-    res.status(400).send({ message: "Node already exists in our network." });
+    res.status(200).send({ message: "Node already exists in our network." });
   }
 });
 
 app.post("/register-nodes-bulk", (req, res) => {
   const { allNetworkNodes } = req.body;
   
-  allNetworkNodes.forEach((networkNodeUrl) => {
-    const nodeNotAlreadyPresent = block.networkNodes.indexOf(networkNodeUrl) === -1;
-    const notCurrentNode = block.currentNodeUrl !== networkNodeUrl;
+  allNetworkNodes.forEach(networkNodeUrl => {
+    const isValid = networkService.isValidNodeUrl(networkNodeUrl, block);
 
-    if (nodeNotAlreadyPresent && notCurrentNode) {
+    if (isValid) {
       block.networkNodes.push(networkNodeUrl);
     }
   });
