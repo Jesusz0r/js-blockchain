@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
+const morgan = require('morgan');
 const request = require("request-promise");
 const Blockchain = require("./blockchain");
 const uuid = require("uuid/v4");
@@ -14,6 +15,7 @@ const networkService = require("./services");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(morgan('dev'));
 
 app.get("/", (req, res) => {
   res.send({ message: "API is working." });
