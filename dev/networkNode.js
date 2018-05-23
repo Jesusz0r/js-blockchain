@@ -25,27 +25,58 @@ app.get("/blockchain", (req, res) => {
   res.status(200).send({ block });
 });
 
-app.post("/transaction", async (req, res) => {
+app.post("/transaction", (req, res) => {
+  const { newTransaction } = req.body;
+  const blockIndex = block.addTransactionToPrendingTransactions(newTransaction);
+
+  console.log(newTransaction);
+
+  res.status(200).send({ message: `Transaction will be added in block ${blockIndex}` });
+});
+
+app.post("/transaction/broadcast", (req, res) => {
   try {
     const { amount, sender, recipient } = req.body;
+    const registerNodePromises = [];
 
     if (!amount) throw "Amount is required";
     if (!sender) throw "Sender address is required";
     if (!recipient) throw "Recepient address is required";
 
-    const blockIndex = await block.createNewTransaction(
+    const newTransaction = block.createNewTransaction(
       amount,
       sender,
       recipient
     );
 
-    res.status(200).send({ message: "Money sent correctly.", blockIndex });
-  } catch (error) {
-    res.status(400).send({ error });
+    block.addTransactionToPrendingTransactions(newTransaction);
+    block.networkNodes.forEach(networkNodeUrl => {
+      const requestOptions = {
+        uri: `${networkNodeUrl}/transaction`,
+        method: 'POST',
+        body: {
+          newTransaction
+        },
+        json: true
+      }
+
+      registerNodePromises.push(request(requestOptions));
+    });
+
+    Promise.all(registerNodePromises)
+      .then(() => {
+        res.status(200).send({ message: 'Transaction broadcasted successfuly.' });
+      })
+      .catch(error => { throw new Error(error); });
+  } catch(error) {
+    console.log(error);
+
+    res.status(400).send({ error })
   }
 });
 
 app.get("/mine", (req, res) => {
+  const registerNodePromises = [];
   const previousBlock = block.getLastBlock();
   const previousBlockHash = previousBlock.hash;
   const currentBlockData = {
@@ -55,10 +86,61 @@ app.get("/mine", (req, res) => {
   const nonce = block.proofOfWork(previousBlockHash, currentBlockData);
   const hash = block.hashBlock(previousBlockHash, currentBlockData, nonce);
   const newBlock = block.createNewBlock(nonce, previousBlockHash, hash);
+  
+  block.networkNodes.forEach(networkNodeUrl => {
+    const requestOptions = {
+      uri: `${networkNodeUrl}/receive-new-block`,
+      method: 'POST',
+      body: {
+        newBlock
+      },
+      json: true
+    };
+    
+    registerNodePromises.push(request(requestOptions));
+  });
+  
+  Promise.all(registerNodePromises)
+    .then(() => {
+      const requestOptions = {
+        uri: `${block.currentNodeUrl}/transaction/broadcast`,
+        method: 'POST',
+        body: {
+          sender: '00',
+          recipient: nodeAddress,
+          amount: 12.5
+        },
+        json: true
+      }
 
-  block.createNewTransaction(12.5, "00", nodeAddress);
+      return request(requestOptions);
+    })
+    .then(() => {
+      res.status(200).send({
+        message: 'New block was mined and broadcasted successfuly',
+        block: newBlock
+      });
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(400).send({ error: error.message });
+    });
+});
 
-  res.status(200).send({ block: newBlock });
+app.post("/receive-new-block", (req, res) => {
+  const { newBlock } = req.body;
+  const lastBlock = block.getLastBlock();
+  const correctHash = lastBlock.hash === newBlock.previousBlockHash;
+  const correctIndex = lastBlock.index + 1 === newBlock.index;
+
+  if (correctHash && correctIndex) {
+    block.chain.push(newBlock);
+    block.pendingTransactions = [];
+
+    res.status(200).send({ message: 'New block received successfuly.' });
+  } else {
+    res.status(400).send({ message: 'Block is not valid.' });
+  }
 });
 
 app.post("/register-and-broadcast-node", (req, res) => {
