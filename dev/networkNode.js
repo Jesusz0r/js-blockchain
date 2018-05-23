@@ -29,8 +29,6 @@ app.post("/transaction", (req, res) => {
   const { newTransaction } = req.body;
   const blockIndex = block.addTransactionToPrendingTransactions(newTransaction);
 
-  console.log(newTransaction);
-
   res.status(200).send({ message: `Transaction will be added in block ${blockIndex}` });
 });
 
@@ -58,7 +56,7 @@ app.post("/transaction/broadcast", (req, res) => {
           newTransaction
         },
         json: true
-      }
+      };
 
       registerNodePromises.push(request(requestOptions));
     });
@@ -111,7 +109,7 @@ app.get("/mine", (req, res) => {
           amount: 12.5
         },
         json: true
-      }
+      };
 
       return request(requestOptions);
     })
@@ -130,13 +128,12 @@ app.get("/mine", (req, res) => {
 app.post("/receive-new-block", (req, res) => {
   const { newBlock } = req.body;
   const lastBlock = block.getLastBlock();
-  const correctHash = lastBlock.hash === newBlock.previousBlockHash;
-  const correctIndex = lastBlock.index + 1 === newBlock.index;
+  console.log('newBlock', newBlock);
+  console.log('lastBlock', lastBlock);
+  const isValidBlock = networkService.isValidBlock(newBlock, lastBlock);
 
-  if (correctHash && correctIndex) {
-    block.chain.push(newBlock);
-    block.pendingTransactions = [];
-
+  if (isValidBlock) {
+    block.pushNewBlock(newBlock);
     res.status(200).send({ message: 'New block received successfuly.' });
   } else {
     res.status(400).send({ message: 'Block is not valid.' });

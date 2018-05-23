@@ -23,6 +23,12 @@ class Blockchain {
       previousBlockHash
     };
 
+    this.pushNewBlock(newBlock);
+
+    return newBlock;
+  }
+
+  pushNewBlock(newBlock) {
     this.pendingTransactions = [];
     this.chain.push(newBlock);
 
@@ -58,17 +64,16 @@ class Blockchain {
   }
 
   proofOfWork(previousBlockHash, currentBlockData) {
-    let nonce = 0;
-    let hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
-    
-    const firstFourDigits = generateRandomDigits();
+      let nonce = 0;
+      let hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
+      const firstFourDigits = generateRandomDigits();
 
-    while (hash.substring(0, 6) !== firstFourDigits) {
-      nonce++;
-      hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
-    }
+      while (hash.toString().substring(0, 6) !== firstFourDigits) {
+        nonce++;
+        hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
+      }
 
-    return nonce;
+      return nonce;
   }
 }
 
