@@ -53,7 +53,7 @@ class Blockchain {
 
   addTransactionToPrendingTransactions(newTransaction) {
     this.pendingTransactions.push(newTransaction);
-  
+
     return this.getLastBlock()['index'] + 1;
   }
 
@@ -68,7 +68,7 @@ class Blockchain {
       let hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
       const firstFourDigits = generateRandomDigits();
 
-      while (hash.toString().substring(0, 6) !== firstFourDigits) {
+      while (hash.toString().substring(0, 4) !== firstFourDigits) {
         nonce++;
         hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
       }
@@ -81,7 +81,7 @@ function generateRandomDigits() {
   let digits = '';
   const randomDigits = ['a', '2', 'f', '4', '1', 'c', '7', '9', '3', 'b', '6', 'e', '5', '8', '0'];
 
-  while (digits.length < 6) {
+  while (digits.length < 4) {
     const length = randomDigits.length;
     const randomNumber = Math.floor(Math.random() * (length - 0) + 0);
 

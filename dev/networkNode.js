@@ -28,9 +28,11 @@ app.get("/blockchain", (req, res) => {
 // Endpoint para crear una nueva transacción (puede recibir una nueva transacción de /transaction/broadcast o una petición directa)
 app.post("/transaction", (req, res) => {
   // recibe la transacción en el body
-  const { newTransaction } = req.body;
+  const { amount, sender } = req.body;
+  // crea un nuevo objeto de transacción
+  const newTransactionOBj = block.createNewTransaction(amount, parseInt(sender), String(nodeAddress));
   // Agrega la transacción al array de transacciones pendientes
-  const blockIndex = block.addTransactionToPrendingTransactions(newTransaction);
+  const blockIndex = block.addTransactionToPrendingTransactions(newTransactionOBj);
 
   res.status(200).send({ message: `Transaction will be added in block ${blockIndex}` });
 });
