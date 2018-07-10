@@ -6,13 +6,18 @@ class Blockchain {
   constructor() {
     this.chain = [];
     this.pendingTransactions = [];
-
     this.currentNodeUrl = url;
     this.networkNodes = [];
 
     this.createNewBlock(100, '0', '0');
   }
 
+  /**
+   *
+   * @param {Number} nonce
+   * @param {String: hash} previousBlockHash
+   * @param {String: hash} hash
+   */
   createNewBlock(nonce, previousBlockHash, hash) {
     const newBlock = {
       index: this.chain.length + 1,
@@ -39,6 +44,12 @@ class Blockchain {
     return this.chain[this.chain.length - 1];
   }
 
+  /**
+   *
+   * @param {Number} amount
+   * @param {String: uuid} sender
+   * @param {String: uuid} recipient
+   */
   createNewTransaction(amount, sender, recipient) {
     const id = uuid().split('-').join('');
     const newTransaction = {
@@ -51,6 +62,10 @@ class Blockchain {
     return newTransaction;
   }
 
+  /**
+   *
+   * @param {Object} newTransaction
+   */
   addTransactionToPrendingTransactions(newTransaction) {
     this.pendingTransactions.push(newTransaction);
 
@@ -63,6 +78,11 @@ class Blockchain {
     return SHA256.x2(dataAsString);
   }
 
+  /**
+   *
+   * @param {String: hash} previousBlockHash
+   * @param {Object: newBlock} currentBlockData
+   */
   proofOfWork(previousBlockHash, currentBlockData) {
       let nonce = 0;
       let hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
